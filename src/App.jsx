@@ -4,39 +4,63 @@ import "./App.css";
 
 function App() {
   const [search, setSearch] = useState("");
-  const [searchType, setSearchType] = useState("ugeac");
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const [dark, setDark] = useState(true);
 
   async function searchStudent() {
-  console.log("Search started");
+  try {
+    if (search.trim() === "") {
+      alert("Please enter something.");
+      return;
+    }
 
-  setLoading(true);
+    setLoading(true);
+    setStudents([]);
+    setNotFound(false);
 
-  let query = supabase.from("students").select("*");
+    const value = search.trim();
 
-  if (searchType === "ugeac") {
-    query = query.eq("ugeac_id", search.trim());
-  } else if (searchType === "air") {
-    query = query.eq("jee_air", search.trim());
-  } else {
-    query = query.ilike("name", `%${search.trim()}%`);
+    console.log("Searching for:", value);
+
+    let query = supabase.from("students").select("*");
+
+    if (/^\d+$/.test(value)) {
+      // Numeric input
+
+      if (value.length >= 12) {
+        console.log("Searching by UGEAC ID");
+        query = query.eq("ugeac_id", value);
+      } else {
+        console.log("Searching by JEE AIR");
+        query = query.eq("jee_air", value);
+      }
+
+    } else {
+      console.log("Searching by Name");
+      query = query.ilike("name", `%${value}%`);
+    }
+
+    const { data, error } = await query;
+
+    console.log("Data:", data);
+    console.log("Error:", error);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      setNotFound(true);
+    } else {
+      setStudents(data);
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  } finally {
+    setLoading(false);
   }
-
-  const { data, error } = await query;
-
-  console.log("Data:", data);
-  console.log("Error:", error);
-
-  setLoading(false);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  setStudents(data);
 }
 
   return (
@@ -89,47 +113,10 @@ function App() {
 
         <h2>Search Student</h2>
 
-        <div className="radioGroup">
-
-          <label>
-            <input
-              type="radio"
-              checked={searchType === "ugeac"}
-              onChange={() => setSearchType("ugeac")}
-            />
-            UGEAC ID
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              checked={searchType === "air"}
-              onChange={() => setSearchType("air")}
-            />
-            JEE AIR
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              checked={searchType === "name"}
-              onChange={() => setSearchType("name")}
-            />
-            Name
-          </label>
-
-        </div>
-
         <input
             className="searchInput"
             type="text"
-            placeholder={
-              searchType === "ugeac"
-                  ? "Enter UGEAC ID"
-                  : searchType === "air"
-                  ? "Enter JEE AIR"
-                  : "Enter Student Name"
-            }
+            placeholder="Enter UGEAC ID, JEE AIR or Student Name"
             value={search}
             onChange={(e)=>setSearch(e.target.value)}
             onKeyDown={(e)=>{
