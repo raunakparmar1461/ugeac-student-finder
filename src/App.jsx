@@ -39,7 +39,9 @@ function App() {
 
     } else {
       console.log("Searching by Name");
-      query = query.ilike("name", `%${value}%`);
+      query = query.or(
+        `name.ilike.%${value}%,institute.ilike.%${value}%,branch.ilike.%${value}%`
+      );
     }
 
     const { data, error } = await query;
@@ -116,7 +118,7 @@ function App() {
         <input
             className="searchInput"
             type="text"
-            placeholder="Enter UGEAC ID, JEE AIR or Student Name"
+            placeholder="Search by UGEAC ID, JEE AIR, Name, Institute or Branch"
             value={search}
             onChange={(e)=>setSearch(e.target.value)}
             onKeyDown={(e)=>{
